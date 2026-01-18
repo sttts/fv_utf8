@@ -333,6 +333,10 @@ const
   ReplaceStr     : String[80] = '';
   Clipboard      : PEditor = nil;
 
+  { Highlight line for external sync (1-based, 0 = no highlight) }
+  EditorHighlightLine : Word = 0;
+  EditorHighlightColor : Word = $60;  { Yellow background, black text }
+
   ToClipCmds     : TCommandSet = ([cmCut,cmCopy,cmClear]);
   FromClipCmds   : TCommandSet = ([cmPaste]);
   UndoCmds       : TCommandSet = ([cmUndo,cmRedo]);
@@ -1865,12 +1869,20 @@ end; { TEditor.Draw }
 procedure TEditor.DrawLines (Y, Count : Sw_Integer; LinePtr : Sw_Word);
 VAR
   Color : Word;
-  B     : array[0..MaxLineLength - 1] of Int64; // by unxed Sw_Word to Int64 
+  LineColor : Word;
+  CurrentLine : Word;
+  B     : array[0..MaxLineLength - 1] of Int64; // by unxed Sw_Word to Int64
 begin
   Color := GetColor ($0201);
   while Count > 0 do
   begin
-    FormatLine (B, LinePtr, Delta.X + Size.X, Color);
+    { Check for highlight line (1-based), only when not focused }
+    CurrentLine := Delta.Y + Y + 1;
+    IF (State AND sfFocused = 0) AND (EditorHighlightLine > 0) AND (CurrentLine = EditorHighlightLine) THEN
+      LineColor := (EditorHighlightColor SHL 8) OR EditorHighlightColor
+    ELSE
+      LineColor := Color;
+    FormatLine (B, LinePtr, Delta.X + Size.X, LineColor);
     WriteBuf (0, Y, Size.X, 1, B[Delta.X]);
     LinePtr := NextLine (LinePtr);
     Inc (Y);
